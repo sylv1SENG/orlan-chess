@@ -7,7 +7,9 @@ Joue aux échecs contre l'ordinateur avec un coach grand maître (fictif) qui ju
 
 ## Mise en ligne
 
-`index.html` est autonome : dépose-le sur n'importe quel hébergement statique (GitHub Pages, Netlify, OVH…). Aucun serveur ni installation.
+En ligne sur **https://www.sylvainsengbandith.fr/echecs/** (PlanetHoster, dossier `public_html/echecs/`).
+
+`index.html` est autonome : aucun serveur ni installation. À chaque push sur `main`, le workflow `.github/workflows/deploy.yml` reconstruit la page et l'envoie par FTP dans `public_html/echecs/`, une fois les secrets `FTP_SERVER`, `FTP_USERNAME` et `FTP_PASSWORD` renseignés dans GitHub.
 
 ## Développement
 

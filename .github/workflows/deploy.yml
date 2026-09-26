@@ -1,0 +1,35 @@
+# Déploie le site dans public_html/<SITE_DIR>/ chez PlanetHoster à chaque push sur main.
+# Secrets à créer dans GitHub (Settings > Secrets and variables > Actions) :
+#   FTP_SERVER    ex. world-366.fr.planethoster.net
+#   FTP_USERNAME  compte FTP cPanel (idéalement un compte limité à public_html)
+#   FTP_PASSWORD
+name: Déploiement PlanetHoster
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+env:
+  SITE_DIR: echecs   # sous-dossier du site : sylvainsengbandith.fr/echecs/
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Construire index.html
+        run: |
+          python3 build.py
+          mkdir -p dist && cp index.html dist/
+
+      - name: Envoyer par FTP
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ${{ secrets.FTP_SERVER }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          protocol: ftps
+          local-dir: ./dist/
+          server-dir: public_html/${{ env.SITE_DIR }}/
