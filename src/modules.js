@@ -88,7 +88,11 @@ function startBasic(id) {
   Object.assign(S.bases, { item: it, game: new Chess(it.fen), color: new Chess(it.fen).turn(), active: true, busy: false, moves: 0, done: false,
     startMat: material(new Chess(it.fen), new Chess(it.fen).turn()) });
   S.arrows = []; S.focus = []; S.bb = null; S.sel = null; S.targets = [];
+  hidePop(); hideToast();
   renderBases(); render();
+  popup({ tone: 'info', kicker: BASICS.find(g => g.items.includes(it)).group, title: it.title, body: it.goal,
+    detail: it.tips[0], detailLabel: 'Le truc à savoir',
+    buttons: [{ label: 'C’est parti', primary: true }] });
 }
 async function basesHint() {
   const b = S.bases; if (!b.active || b.busy) return;
@@ -99,16 +103,16 @@ async function basesHint() {
   const d = describeMove(b.game.fen(), r.move);
   S.arrows = [{ from: r.move.from, to: r.move.to, color: ARROW.move }];
   const mateTxt = isMate(r.score) && r.score > 0 ? ` Mat en ${mateIn(r.score)} coup${mateIn(r.score) > 1 ? 's' : ''} possible.` : '';
-  renderBasesCard(`<p class="tip"><b>Indice :</b> ${d ? fr(d.san) : ''} (flèche dorée).${mateTxt}</p>`);
+  toast(`<b>Indice :</b> ${d ? fr(d.san) : ''} (flèche dorée).${mateTxt}`, 'info', 5000);
   render();
 }
-function finishBasic(ok, html) {
+function finishBasic(ok, html, moves) {
   const b = S.bases; b.active = false; b.done = true;
   if (ok) markDone(b.item.id);
-  renderBases();
+  hideToast(); renderBases();
   renderBasesCard(`<p class="tip" style="border-color:${ok ? 'var(--c-best)' : 'var(--c-blund)'}"><b style="color:${ok ? 'var(--c-best)' : 'var(--c-blund)'}">${ok ? 'Réussi.' : 'Raté.'}</b> ${html}</p>`);
-  setBubble({ sq: b.game.history({ verbose: true }).slice(-1)[0]?.to || 'e4', ok, label: ok ? 'Réussi' : 'À retravailler', main: ok ? 'Bien joué.' : 'Pas cette fois.', why: html.replace(/<[^>]+>/g, '') });
   render();
+  basesPopupResult(ok, html, moves);
 }
 async function basesMove(from, to, promotion, dragged) {
   const b = S.bases, it = b.item, tok = S.token;
@@ -124,11 +128,11 @@ async function basesMove(from, to, promotion, dragged) {
     if (tok !== S.token) return;
     b.busy = false;
     const ok = best && (isMate(best.score) && best.score > 0 ? isMate(us) && us > 0 : us >= best.score - 80);
-    if (ok) finishBasic(true, it.explain);
+    const d = best && describeMove(before, best.move);
+    if (ok) finishBasic(true, it.explain, [{ label: 'Ton coup', san: mv.san, kind: 'good' }]);
     else {
-      const d = best && describeMove(before, best.move);
       S.arrows = d ? [{ from: best.move.from, to: best.move.to, color: ARROW.plan }] : [];
-      finishBasic(false, `Tu as joué ${fr(mv.san)}. ${it.explain}`);
+      finishBasic(false, it.explain, [{ label: 'Ton coup', san: mv.san, kind: 'bad' }, ...(d ? [{ label: 'La solution', san: d.san, kind: 'good' }] : [])]);
     }
     return;
   }
@@ -157,7 +161,7 @@ async function basesMove(from, to, promotion, dragged) {
   const room = kingRoom(g);
   let note = '';
   if (it.kind === 'mate' && !g.in_check()) note = room <= 1 ? `<b>Attention :</b> le roi noir n’a plus que ${room} case. Donne échec ou laisse-lui de l’air, sinon c’est pat.` : `Le roi noir a ${room} cases libres. Continue de réduire la boîte.`;
-  renderBasesCard(note ? `<p class="tip">${note}</p>` : '');
+  if (note) toast(note, room <= 1 ? 'warn' : 'info', room <= 1 ? 4500 : 2200);
   await sleep(350);
   const r = await E('best', g.fen(), 4, 600, 0);
   if (tok !== S.token || !r) return;
@@ -181,9 +185,16 @@ function renderGames(msg) {
       <select id="g-months" aria-label="Période"><option value="1">1 mois</option><option value="3" selected>3 mois</option><option value="6">6 mois</option></select>
       <button class="btn primary" id="g-go" ${GM.running ? 'disabled' : ''}>Analyser</button></div></form>`;
   if (msg) h += `<div class="bmsg">${msg}</div>`;
-  if (S.gm.active || S.gm.status) h += `<div class="step"><div class="who"><b>${S.gm.title || 'Entraînement'}</b><span class="n">${S.gm.progress || ''}</span></div><p class="say">${S.gm.status || ''}</p>${S.gm.detail ? `<div class="bmsg">${S.gm.detail}</div>` : ''}
-    ${S.gm.kind === 'drill' && S.gm.cur ? (S.gm.active ? `<div class="stepctl"><button class="btn" id="g-hint">Indice</button><button class="btn grow" id="g-skip">Passer</button></div>` : `<div class="stepctl"><button class="btn primary grow" id="g-nextpos">Position suivante</button></div>`) : ''}
-    ${S.gm.kind === 'spar' ? `<div class="stepctl"><button class="btn grow" id="g-restart">Nouvelle ligne</button></div>` : ''}</div>`;
+  if (S.gm.kind) {
+    const gm = S.gm;
+    h += `<div class="step game-step">${hudHtml()}
+      <div class="who"><b>${gm.title || 'Entraînement'}</b></div>
+      <p class="say">${gm.status || ''}</p>
+      ${gm.kind === 'drill' && gm.cur ? (gm.active ? `<div class="stepctl"><button class="btn" id="g-hint">Indice</button><button class="btn grow" id="g-skip">Passer</button></div>`
+        : gm.answered ? `<div class="stepctl"><button class="btn primary grow" id="g-nextpos">Position suivante</button></div>` : '') : ''}
+      ${gm.kind === 'spar' ? `<div class="stepctl"><button class="btn grow" id="g-restart">Nouvelle ligne</button></div>` : ''}
+    </div>`;
+  }
   if (r) {
     const pct = (w, n) => n ? Math.round(100 * w / n) + ' %' : '–';
     h += `<div class="stats g3">
@@ -194,13 +205,13 @@ function renderGames(msg) {
       <p class="tip"><b>Comment tu perds :</b> ${r.lossHow}. <b>Pats alors que tu gagnais :</b> ${r.stalemateAhead}.</p>
       <p class="tip"><b>Première gaffe :</b> vers le coup ${r.firstErr} en moyenne. ${r.errSplit}</p>
       <div class="stepctl"><button class="btn primary grow" id="g-drill">Refaire mes erreurs (${r.errors.length})</button></div>
-      <div class="stepctl"><button class="btn grow" id="g-spar-w">Rejouer mes ouvertures · Blancs</button><button class="btn grow" id="g-spar-b">· Noirs</button></div>
+      <div class="style" style="margin-top:4px">Rejouer mes ouvertures</div><div class="stepctl"><button class="btn grow" id="g-spar-w">Avec les Blancs</button><button class="btn grow" id="g-spar-b">Avec les Noirs</button></div>
       ${r.flags.length ? `<div><div class="style" style="margin-bottom:8px">Tes ouvertures à corriger</div><ul class="plans">${r.flags.slice(0, 6).map(f => `<li>Après ${f.line} (vu ${f.count} fois) : tu joues ${fr(f.played)}, mieux vaut ${fr(f.best)}.</li>`).join('')}</ul></div>` : ''}`;
   }
   $('games-card').innerHTML = h;
   $('g-form').onsubmit = ev => { ev.preventDefault(); analyseGames($('g-user').value.trim(), +$('g-months').value); };
   if (r) { $('g-drill').onclick = () => startDrill(); $('g-spar-w').onclick = () => startSpar('w'); $('g-spar-b').onclick = () => startSpar('b'); }
-  if ($('g-hint')) $('g-hint').onclick = () => { const e = S.gm.cur; if (e) { S.arrows = [{ from: e.bestFrom, to: e.bestTo, color: ARROW.move }]; drawArrows(); } };
+  if ($('g-hint')) $('g-hint').onclick = drillHint;
   if ($('g-skip')) $('g-skip').onclick = () => nextDrill(true);
   if ($('g-nextpos')) $('g-nextpos').onclick = () => nextDrill();
   if ($('g-restart')) $('g-restart').onclick = () => startSpar(S.gm.color);
@@ -318,79 +329,232 @@ function lineText(sans) {
   return sans.map((s, i) => (i % 2 === 0 ? (i / 2 + 1) + '.' : '') + fr(s)).join(' ');
 }
 
-/* Drill on my own mistakes */
-function startDrill() {
-  const r = GM.report; if (!r || !r.errors.length) return;
-  S.gm.queue = r.errors.slice(); S.gm.kind = 'drill'; S.gm.okCount = 0; S.gm.total = r.errors.length;
+/* ================= Popups façon jeu éducatif ================= */
+const ICONS = {
+  win: '<svg viewBox="0 0 48 48" aria-hidden="true"><path d="M13 25l7 7 15-16" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+  lose: '<svg viewBox="0 0 48 48" aria-hidden="true"><path d="M16 16l16 16M32 16L16 32" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round"/></svg>',
+  warn: '<svg viewBox="0 0 48 48" aria-hidden="true"><path d="M24 12v15" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round"/><circle cx="24" cy="35" r="3.2" fill="currentColor"/></svg>',
+  info: '<svg viewBox="0 0 48 48" aria-hidden="true"><text x="24" y="31" text-anchor="middle" font-family="Bodoni Moda, Georgia, serif" font-style="italic" font-size="19" fill="currentColor">VO</text></svg>',
+  end: '<svg viewBox="0 0 48 48" aria-hidden="true"><path d="M24 9l4.4 9 9.9 1.4-7.2 7 1.7 9.8L24 31.6l-8.8 4.6 1.7-9.8-7.2-7 9.9-1.4z" fill="currentColor"/></svg>'
+};
+const popHost = () => document.querySelector('.board-zone');
+function chime(tone) {
+  if (!soundOn) return;
+  try {
+    actx = actx || new (window.AudioContext || window.webkitAudioContext)();
+    const notes = tone === 'win' || tone === 'end' ? [523, 659, 784] : tone === 'lose' ? [330, 262] : [440];
+    notes.forEach((f, i) => {
+      const o = actx.createOscillator(), g = actx.createGain(), t = actx.currentTime + i * .11;
+      o.type = tone === 'lose' ? 'triangle' : 'sine'; o.frequency.value = f;
+      g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(.14, t + .02); g.gain.exponentialRampToValueAtTime(.001, t + .35);
+      o.connect(g); g.connect(actx.destination); o.start(t); o.stop(t + .4);
+    });
+  } catch (e) {}
+}
+function confetti(host) {
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const cols = ['#E8CD8F', '#86C06F', '#4CC7BA', '#F2E9DA', '#C9A45C', '#F0903F'];
+  const box = document.createElement('div'); box.className = 'confetti';
+  for (let i = 0; i < 26; i++) {
+    const c = document.createElement('i');
+    c.style.left = (8 + Math.random() * 84) + '%'; c.style.background = cols[i % cols.length];
+    c.style.setProperty('--dx', (Math.random() * 160 - 80) + 'px'); c.style.setProperty('--r', (Math.random() * 720 - 360) + 'deg');
+    c.style.animationDelay = (Math.random() * .18) + 's';
+    box.appendChild(c);
+  }
+  host.appendChild(box); setTimeout(() => box.remove(), 1600);
+}
+function hidePop() { const el = document.getElementById('pop'); if (el) el.remove(); }
+function popup(o) {
+  hidePop();
+  const host = popHost(); if (!host) return;
+  const el = document.createElement('div'); el.id = 'pop'; el.className = 'pop';
+  const stars = o.stars != null ? `<div class="pop-stars" aria-label="${o.stars} étoile${o.stars > 1 ? 's' : ''} sur 3">${[1, 2, 3].map(i => `<span class="${i <= o.stars ? 'on' : ''}" style="animation-delay:${.15 + i * .12}s">★</span>`).join('')}</div>` : '';
+  el.innerHTML = `<div class="pop-card tone-${o.tone}" role="dialog" aria-modal="true" aria-labelledby="pop-t">
+      <div class="pop-badge">${ICONS[o.tone] || ICONS.info}</div>
+      ${o.kicker ? `<div class="pop-kicker">${o.kicker}</div>` : ''}
+      <h4 id="pop-t">${o.title}</h4>
+      ${stars}
+      ${o.body ? `<p class="pop-body">${o.body}</p>` : ''}
+      ${o.moves ? `<div class="pop-moves">${o.moves.map(m => `<div class="pm ${m.kind}"><span>${m.label}</span><b>${fr(m.san)}</b></div>`).join('')}</div>` : ''}
+      ${o.detail ? `<div class="pop-why"><b>${o.detailLabel || 'Pourquoi ?'}</b><p>${o.detail}</p></div>` : ''}
+      ${o.xp ? `<div class="pop-xp"><span>+${o.xp} XP</span>${o.streak > 1 ? `<span>Série ×${o.streak}</span>` : ''}</div>` : ''}
+      <div class="pop-actions">${o.buttons.map((b, i) => `<button class="pbtn ${b.primary ? 'primary' : ''}" data-i="${i}">${b.label}</button>`).join('')}</div>
+    </div>`;
+  host.appendChild(el);
+  el.querySelectorAll('[data-i]').forEach(btn => btn.onclick = () => { const b = o.buttons[+btn.dataset.i]; hidePop(); b.action && b.action(); });
+  el.addEventListener('keydown', ev => { if (ev.key === 'Escape') { const c = o.buttons.find(b => b.cancel) || o.buttons[0]; hidePop(); c.action && c.action(); } });
+  if (o.tone === 'win' || o.tone === 'end') confetti(el);
+  chime(o.tone);
+  const prim = el.querySelector('.pbtn.primary') || el.querySelector('.pbtn'); if (prim) setTimeout(() => prim.focus({ preventScroll: true }), 50);
+  if (window.matchMedia('(max-width: 600px)').matches) { const r = host.getBoundingClientRect(); if (r.top < 0 || r.top > innerHeight * .4) window.scrollTo({ top: scrollY + r.top - 8, behavior: 'smooth' }); }
+}
+let toastTimer = null;
+function toast(html, tone, ms) {
+  const host = popHost(); if (!host) return;
+  let el = document.getElementById('toast');
+  if (!el) { el = document.createElement('div'); el.id = 'toast'; host.appendChild(el); }
+  el.className = 'toast tone-' + (tone || 'info'); el.innerHTML = html; el.hidden = false;
+  el.style.animation = 'none'; void el.offsetWidth; el.style.animation = '';
+  clearTimeout(toastTimer); if (ms !== 0) toastTimer = setTimeout(() => { el.hidden = true; }, ms || 3200);
+}
+const hideToast = () => { const el = document.getElementById('toast'); if (el) el.hidden = true; };
+const XP = { get: () => lsGet('orlan-xp', 0), add: n => { const v = XP.get() + n; lsSet('orlan-xp', v); return v; } };
+const levelOf = xp => ({ lvl: Math.floor(xp / 100) + 1, pct: xp % 100 });
+
+/* Bases : résultats en popup */
+function basesPopupResult(ok, html, moves) {
+  const b = S.bases, it = b.item;
+  const l = allBasics(), next = l[(l.indexOf(it) + 1) % l.length];
+  if (ok) {
+    const xp = 15; XP.add(xp);
+    popup({ tone: 'win', kicker: it.title, title: pick(['Bien joué !', 'Réussi !', 'Parfait !']), moves, detail: html, detailLabel: 'À retenir', xp,
+      buttons: [{ label: 'Recommencer', action: () => startBasic(it.id) }, { label: 'Exercice suivant', primary: true, action: () => startBasic(next.id) }] });
+  } else {
+    popup({ tone: 'lose', kicker: it.title, title: pick(['Presque !', 'Pas cette fois', 'On recommence ?']), moves, detail: html, detailLabel: 'Ce qui s’est passé',
+      buttons: [{ label: 'Voir la position', cancel: true, action: () => { renderBasesCard(); render(); } }, { label: 'Réessayer', primary: true, action: () => startBasic(it.id) }] });
+  }
+}
+
+/* ================= Mes parties : entraînement sur mes erreurs ================= */
+function hudHtml() {
+  const xp = XP.get(), L = levelOf(xp), gm = S.gm;
+  const prog = gm.kind === 'drill' && gm.total ? Math.round(100 * gm.doneCount / gm.total) : null;
+  return `<div class="hud">
+      <div class="hud-lvl"><b>Niv. ${L.lvl}</b><span class="bar"><i style="width:${L.pct}%"></i></span><small>${xp} XP</small></div>
+      ${gm.kind === 'drill' ? `<div class="hud-streak ${gm.streak >= 3 ? 'hot' : ''}"><b>×${gm.streak || 0}</b><small>série</small></div>` : ''}
+    </div>
+    ${prog != null ? `<div class="progress" aria-label="Progression ${gm.doneCount} sur ${gm.total}"><i style="width:${prog}%"></i><span>${gm.doneCount} / ${gm.total}</span></div>` : ''}`;
+}
+function startDrill(list) {
+  const r = GM.report; const src = list || (r && r.errors); if (!src || !src.length) return;
+  Object.assign(S.gm, { kind: 'drill', queue: src.slice(), okCount: 0, doneCount: 0, total: src.length, streak: 0, sessionXP: 0, failed: [], seen: new Set() });
   nextDrill();
 }
 function nextDrill(skip) {
-  const q = S.gm.queue;
-  if (skip && S.gm.cur) q.push(S.gm.cur);
+  const gm = S.gm, q = gm.queue;
+  hideToast();
+  if (skip && gm.cur) q.push(gm.cur);
   const e = q.shift();
   S.token++; S.bb = null; S.arrows = []; S.focus = [];
-  if (!e) { S.gm.active = false; S.gm.status = `Terminé : ${S.gm.okCount} position${S.gm.okCount > 1 ? 's' : ''} réussie${S.gm.okCount > 1 ? 's' : ''} sur ${S.gm.total}.`; S.gm.detail = ''; S.gm.cur = null; renderGames(); render(); return; }
-  S.gm.cur = e; S.gm.game = new Chess(e.fen); S.gm.color = e.c; S.gm.active = true; S.gm.busy = false;
-  S.gm.oppLabel = e.opp; S.gm.title = `Contre ${e.opp}, coup ${e.moveNo}`; S.gm.progress = `${S.gm.total - q.length} / ${S.gm.total}`;
-  S.gm.status = `Dans cette partie, tu as joué ${fr(e.played)}. Trouve mieux.`; S.gm.detail = '';
-  if (e.prev) S.arrows = [{ from: e.prev.from, to: e.prev.to, color: 'rgba(232,205,143,.5)' }];
+  if (!e) return endDrill();
+  gm.cur = e; gm.game = new Chess(e.fen); gm.color = e.c; gm.active = false; gm.busy = false; gm.answered = false; gm.hints = 0;
+  gm.oppLabel = e.opp; gm.title = `Contre ${e.opp} · coup ${e.moveNo}`;
+  gm.status = `Dans ta partie, tu as joué <b class="bad">${fr(e.played)}</b>. Trouve mieux.`;
+  if (e.prev) S.arrows = [{ from: e.prev.from, to: e.prev.to, color: 'rgba(232,205,143,.55)' }];
   renderGames(); render();
+  const again = gm.seen.has(e.fen); gm.seen.add(e.fen);
+  popup({ tone: 'info', kicker: `Position ${Math.min(gm.doneCount + 1, gm.total)} sur ${gm.total}${again ? ' · deuxième essai' : ''}`, title: 'Trouve mieux que dans ta partie',
+    body: `Contre <b>${e.opp}</b>, au coup ${e.moveNo}, tu as joué <b class="bad">${fr(e.played)}</b>. Ce coup t’a coûté cher. Tu joues les ${e.c === 'w' ? 'Blancs' : 'Noirs'}.`,
+    buttons: [{ label: 'À moi de jouer', primary: true, action: () => { gm.active = true; renderGames(); render(); } }] });
+}
+function endDrill() {
+  const gm = S.gm; gm.active = false; gm.cur = null;
+  const ratio = gm.total ? gm.okCount / gm.total : 0;
+  const stars = ratio >= .8 ? 3 : ratio >= .5 ? 2 : 1;
+  renderGames(); render();
+  popup({ tone: 'end', kicker: 'Session terminée', title: stars === 3 ? 'Excellent travail !' : stars === 2 ? 'Beau progrès !' : 'Continue comme ça', stars,
+    body: `${gm.okCount} position${gm.okCount > 1 ? 's' : ''} trouvée${gm.okCount > 1 ? 's' : ''} du premier coup sur ${gm.total}. Tu as gagné ${gm.sessionXP} XP.`,
+    buttons: [
+      ...(gm.failed.length ? [{ label: `Refaire les ${gm.failed.length} ratées`, primary: true, action: () => startDrill(gm.failed.slice()) }] : []),
+      { label: 'Terminer', cancel: true, primary: !gm.failed.length, action: () => {} }] });
+}
+function drillHint() {
+  const gm = S.gm, e = gm.cur; if (!e || !gm.active) return;
+  gm.hints++;
+  const d = describeMove(e.fen, e.best);
+  if (gm.hints === 1 && d) toast(`<b>Indice :</b> regarde ${ton(d.r.piece)} en ${d.r.from}.${d.r.captured ? ' Il y a quelque chose à prendre.' : ''}`, 'info', 4500);
+  else { S.arrows = [{ from: e.bestFrom, to: e.bestTo, color: ARROW.move }]; drawArrows(); toast('<b>Indice :</b> le coup est sur l’échiquier (flèche dorée).', 'info'); }
 }
 
-/* Sparring against my real opponents' moves */
+/* ================= Mes parties : rejouer mes ouvertures ================= */
 function startSpar(color) {
   const r = GM.report; if (!r) return;
-  S.token++;
-  Object.assign(S.gm, { kind: 'spar', color, game: new Chess(), active: true, busy: false, oppLabel: 'Tes adversaires', title: `Tes ouvertures avec les ${color === 'w' ? 'Blancs' : 'Noirs'}`, progress: '', status: 'Ton adversaire joue les coups que tes vrais adversaires t’ont joués, dans les mêmes proportions.', detail: '', cur: null });
+  S.token++; hidePop(); hideToast();
+  Object.assign(S.gm, { kind: 'spar', color, game: new Chess(), active: true, busy: false, oppLabel: 'Tes adversaires', title: `Tes ouvertures avec les ${color === 'w' ? 'Blancs' : 'Noirs'}`, status: 'Ton adversaire joue les coups de tes vrais adversaires, dans les mêmes proportions.', cur: null, good: 0, bad: 0 });
   S.bb = null; S.arrows = []; S.focus = [];
   renderGames(); render();
-  if (color === 'b') sparOpponent();
+  popup({ tone: 'info', kicker: 'Rejouer mes ouvertures', title: `Avec les ${color === 'w' ? 'Blancs' : 'Noirs'}`,
+    body: 'L’ordinateur joue exactement ce que tes adversaires de chess.com t’ont joué, dans les mêmes proportions. Je te préviens quand tu arrives sur une position où tu te trompes souvent.',
+    buttons: [{ label: 'C’est parti', primary: true, action: () => { if (color === 'b') sparOpponent(); } }] });
 }
 async function sparOpponent() {
-  const g = S.gm.game, tree = GM.report.tree[S.gm.color], tok = S.token;
+  const gm = S.gm, g = gm.game, tree = GM.report.tree[gm.color], tok = S.token;
   const node = tree.get(fenKey(g.fen()));
   const tot = node ? Object.values(node.moves).reduce((a, b) => a + b, 0) : 0;
   if (!node || !tot) {
-    S.gm.active = false; S.gm.status = `Fin de ton répertoire connu après ${g.history().length} demi-coups : tes adversaires n’ont jamais joué au-delà dans cette ligne.`; S.gm.detail = '';
-    renderGames(); render(); return;
+    gm.active = false; renderGames(); render();
+    popup({ tone: 'end', kicker: 'Fin de la ligne', title: 'Tu connais cette ligne', stars: gm.bad === 0 ? 3 : gm.bad === 1 ? 2 : 1,
+      body: `Tes adversaires ne sont jamais allés plus loin (${g.history().length} demi-coups). Bons coups : ${gm.good}, à revoir : ${gm.bad}.`,
+      buttons: [{ label: 'Fermer', cancel: true }, { label: 'Nouvelle ligne', primary: true, action: () => startSpar(gm.color) }] });
+    return;
   }
-  S.gm.busy = true; await sleep(500); if (tok !== S.token) return;
+  gm.busy = true; await sleep(550); if (tok !== S.token) return;
   let x = Math.random() * tot, san = null;
   for (const [s, n] of Object.entries(node.moves)) { x -= n; if (x <= 0) { san = s; break; } }
   const mv = g.move(san || Object.keys(node.moves)[0]);
-  S.anim = mv; soundFor(mv); S.gm.busy = false;
-  const mine = tree.get(fenKey(g.fen()));
-  const flag = GM.report.flags.find(f => f.key === fenKey(g.fen()));
-  S.gm.status = `Ils jouent ${fr(mv.san)} (${Math.round(100 * node.moves[mv.san] / tot)} % de tes parties ici).`;
-  S.gm.detail = flag ? `<b>Attention :</b> ici, tu joues souvent ${fr(flag.played)}. Ce n’est pas le meilleur coup. Réfléchis.` : (mine ? '' : 'Position nouvelle pour toi.');
+  S.anim = mv; soundFor(mv); gm.busy = false;
+  gm.status = `Ils jouent <b>${fr(mv.san)}</b> : ${Math.round(100 * node.moves[mv.san] / tot)} % de tes parties dans cette position.`;
   renderGames(); render();
+  const flag = GM.report.flags.find(f => f.key === fenKey(g.fen()));
+  if (flag) popup({ tone: 'warn', kicker: `Position vue ${flag.count} fois`, title: 'Attention, piège connu',
+    body: `Ici, tu joues souvent <b class="bad">${fr(flag.played)}</b>, et ce n’est pas le meilleur coup. Prends le temps de chercher.`,
+    buttons: [{ label: 'Je réfléchis', primary: true }] });
+  else toast(`Ils jouent <b>${fr(mv.san)}</b> (${Math.round(100 * node.moves[mv.san] / tot)} % de tes parties).`, 'info', 2600);
 }
+
+/* ================= Mes parties : un coup joué ================= */
 async function gamesMove(from, to, promotion, dragged) {
   const gm = S.gm, g = gm.game, tok = S.token;
   const before = g.fen();
   const mv = g.move({ from, to, promotion: promotion || 'q' });
   if (!mv) return;
   soundFor(mv); if (!dragged) S.anim = mv;
-  S.sel = null; S.targets = []; S.arrows = []; S.bb = null; gm.busy = true; render();
+  S.sel = null; S.targets = []; S.arrows = []; S.bb = null; gm.busy = true; hideToast(); render();
+  toast('Orlan regarde ton coup…', 'info', 0);
   const best = await E('best', before, 5, 1200, 0);
   const same = best && best.move.from === mv.from && best.move.to === mv.to;
   const us = !best ? 0 : same ? best.score : await E('scoreMove', before, { from, to, promotion: mv.promotion }, best.depth, 1200);
   if (tok !== S.token) return;
+  hideToast();
   const drop = best ? wpDrop(best.score, us) : 0;
   const bd = best && describeMove(before, best.move);
   if (gm.kind === 'drill') {
     const e = gm.cur, ok = drop <= 8 || same;
-    gm.busy = false; gm.active = false;
-    if (ok) { gm.okCount++; gm.status = `Bien vu : ${fr(mv.san)}. ${same ? '' : `Le moteur préférait ${fr(bd.san)}, mais ton coup tient.`}`; gm.detail = `<b>Pourquoi :</b> ${explainMove(before, mv.san)}`; }
-    else { gm.queue.push(e); gm.status = `Pas encore : ${fr(mv.san)} ne suffit pas. Le bon coup était ${fr(bd.san)}.`; gm.detail = `<b>Pourquoi :</b> ${explainMove(before, best.move)} Cette position reviendra plus tard.`; S.arrows = [{ from: best.move.from, to: best.move.to, color: ARROW.plan }]; }
-    setBubble({ sq: ok ? mv.to : best.move.to, ok, label: ok ? 'Réussi' : 'À retravailler', main: ok ? `<b>${fr(mv.san)}</b> : c’est mieux que dans ta partie.` : `J’aurais joué <b>${fr(bd.san)}</b>.`, why: ok ? '' : explainMove(before, best.move) });
-    renderGames(); render();
+    gm.busy = false; gm.active = false; gm.answered = true;
+    const firstTry = !gm.failed.includes(e);
+    if (ok) {
+      gm.okCount += firstTry ? 1 : 0; gm.doneCount++; gm.streak = (gm.streak || 0) + 1;
+      const xp = (gm.hints ? 5 : 10) + (gm.streak >= 3 ? 5 : 0); gm.sessionXP += xp; XP.add(xp);
+      renderGames(); render();
+      popup({ tone: 'win', kicker: firstTry ? 'Réussi' : 'Réussi au deuxième essai', title: pick(['Bien vu !', 'Exactement !', 'Bravo !']),
+        moves: [{ label: 'Dans ta partie', san: e.played, kind: 'bad' }, { label: 'Cette fois', san: mv.san, kind: 'good' }],
+        detail: explainMove(before, mv.san) + (same ? '' : ` Le moteur préférait ${fr(bd.san)}, mais ton coup tient la route.`), xp, streak: gm.streak,
+        buttons: [{ label: gm.queue.length ? 'Position suivante' : 'Voir mon bilan', primary: true, action: () => nextDrill() }] });
+    } else {
+      gm.streak = 0; if (firstTry) gm.failed.push(e); gm.queue.push(e);
+      S.arrows = [{ from: best.move.from, to: best.move.to, color: ARROW.plan }];
+      renderGames(); render();
+      popup({ tone: 'lose', kicker: 'Pas encore', title: pick(['Presque !', 'Pas tout à fait', 'Ça ne suffit pas']),
+        moves: [{ label: 'Ton coup', san: mv.san, kind: 'bad' }, { label: 'Le bon coup', san: bd.san, kind: 'good' }],
+        detail: explainMove(before, best.move) + ' Cette position reviendra un peu plus tard.',
+        buttons: [{ label: 'Voir sur l’échiquier', cancel: true, action: () => toast('La flèche verte montre le bon coup.', 'info', 3000) }, { label: 'Position suivante', primary: true, action: () => nextDrill() }] });
+    }
     return;
   }
-  // sparring
-  if (!same && drop > 8 && bd) setBubble({ sq: best.move.to, label: 'Tes ouvertures', main: `À la place de <b>${fr(mv.san)}</b>, j’aurais joué <b>${fr(bd.san)}</b>.`, why: explainMove(before, best.move), arrow: { from: best.move.from, to: best.move.to, color: ARROW.move, dash: true } });
-  else setBubble({ sq: mv.to, ok: true, label: 'Tes ouvertures', main: `<b>${fr(mv.san)}</b> : bon coup.`, why: '' });
+  // Rejouer mes ouvertures
   gm.busy = false;
+  if (!same && drop > 8 && bd) {
+    gm.bad++; renderGames();
+    popup({ tone: 'lose', kicker: 'Tes ouvertures', title: 'Il y avait mieux',
+      moves: [{ label: 'Ton coup', san: mv.san, kind: 'bad' }, { label: 'Mieux', san: bd.san, kind: 'good' }],
+      detail: explainMove(before, best.move),
+      buttons: [{ label: 'Rejouer ce coup', action: () => { g.undo(); gm.active = true; S.arrows = []; renderGames(); render(); } },
+                { label: 'Continuer', primary: true, cancel: true, action: () => { if (g.game_over()) { gm.active = false; renderGames(); render(); } else sparOpponent(); } }] });
+    return;
+  }
+  gm.good++; renderGames();
+  toast(`<b>${fr(mv.san)}</b> : bon coup.`, 'win', 1800);
   if (g.game_over()) { gm.active = false; renderGames(); render(); return; }
   sparOpponent();
 }

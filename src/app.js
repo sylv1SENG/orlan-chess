@@ -270,9 +270,20 @@ function attacksFrom(fen, sq) {
   catch (e) { return []; }
 }
 // Plain-language reason for a move, from the mover's point of view
+// Moves the side NOT to move could mate with, if it were its turn
+function mateThreats(fen) {
+  const p = fen.split(' '); p[1] = p[1] === 'w' ? 'b' : 'w'; p[3] = '-';
+  try { const g = new Chess(p.join(' ')); if (g.in_check()) return []; return g.moves().filter(m => m.includes('#')); } catch (e) { return []; }
+}
 function explainMove(fen, mv) {
   const g = new Chess(fen), r = g.move(mv);
   if (!r) return '';
+  const threats = mateThreats(fen);
+  if (threats.length && !r.san.includes('#')) {
+    const after = new Chess(fen); after.move(mv);
+    const left = after.in_check() ? [] : (() => { try { return new Chess(after.fen()).moves().filter(m => m.includes('#')); } catch (e) { return []; } })();
+    if (!left.length) return `${cap(le(r.piece))} ${r.san.includes('+') ? 'donne échec et ' : ''}pare la menace : ${r.color === 'w' ? 'les Noirs' : 'les Blancs'} menaçaient ${fr(threats[0].replace('#', ''))} mat.`;
+  }
   const moveNo = +fen.split(' ')[5] || 1;
   const P = cap(le(r.piece)), fem = FEM[r.piece] ? 'e' : '';
   const out = [];
@@ -807,6 +818,7 @@ function setMode(m) {
   document.querySelectorAll('.bases-only').forEach(x => x.hidden = m !== 'bases');
   document.querySelectorAll('.games-only').forEach(x => x.hidden = m !== 'games');
   S.flipped = false; S.bb = null; S.sel = null; S.targets = [];
+  if (typeof hidePop === 'function') { hidePop(); hideToast(); }
   if (m === 'study') { renderOList(); gotoStep(S.study.step); }
   else if (m === 'bases') { stopAuto(); S.arrows = []; S.focus = []; renderBases(); render(); }
   else if (m === 'games') { stopAuto(); S.arrows = []; S.focus = []; renderGames(); render(); }
