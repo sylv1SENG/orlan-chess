@@ -1,0 +1,411 @@
+<title>Orlan, coach d'échecs</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,opsz,wght@0,6..96,500;0,6..96,700;1,6..96,400;1,6..96,500&family=Hanken+Grotesk:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+:root {
+  color-scheme: dark;
+  --bg: #130F0C;
+  --bg-2: #19140F;
+  --surface: #1F1914;
+  --surface-2: #29211A;
+  --line: #3A2F25;
+  --ink: #F2E9DA;
+  --muted: #A6978A;
+  --brass: #C9A45C;
+  --brass-hi: #E8CD8F;
+  --brass-ink: #1A130A;
+  --sq-light: #EBE1CC;
+  --sq-dark: #5E7C66;
+  --sq-sel: rgba(232, 205, 143, .7);
+  --sq-last: rgba(232, 205, 143, .42);
+  --dot: rgba(19, 15, 12, .3);
+  --c-brill: #4CC7BA;
+  --c-best: #86C06F;
+  --c-good: #B3A594;
+  --c-inacc: #E6C150;
+  --c-mist: #F0903F;
+  --c-blund: #F2584F;
+  --display: "Bodoni Moda", "Didot", "Bodoni 72", Georgia, serif;
+  --sans: "Hanken Grotesk", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  --glyph: "Segoe UI Symbol", "Apple Symbols", "DejaVu Sans", "Noto Sans Symbols 2", serif;
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0; background: var(--bg); color: var(--ink); font-family: var(--sans); font-size: 15px; line-height: 1.55;
+  padding-inline: 16px;
+  background-image:
+    radial-gradient(1200px 500px at 70% -10%, rgba(201, 164, 92, .13), transparent 60%),
+    radial-gradient(900px 600px at -10% 30%, rgba(94, 124, 102, .12), transparent 60%);
+  background-attachment: fixed;
+}
+.wrap { max-width: 1180px; margin: 0 auto; }
+a { color: inherit; }
+
+/* Nav */
+nav.top { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding-block: 18px; }
+.logo { display: flex; align-items: center; gap: 10px; text-decoration: none; }
+.logo .mark { width: 34px; height: 34px; border-radius: 50%; border: 1px solid var(--brass); display: grid; place-items: center; color: var(--brass-hi); font: 20px var(--glyph); line-height: 1; }
+.logo .word { font: italic 500 24px var(--display); letter-spacing: .01em; }
+.navlinks { display: flex; align-items: center; gap: 22px; font-size: 14px; color: var(--muted); }
+.navlinks a { text-decoration: none; }
+.navlinks a:hover { color: var(--ink); }
+.sound { border: 1px solid var(--line); background: transparent; color: var(--muted); border-radius: 999px; padding: 5px 12px; font: 500 12.5px var(--sans); cursor: pointer; }
+.sound[aria-pressed="true"] { color: var(--brass-hi); border-color: rgba(201,164,92,.5); }
+@media (max-width: 700px) { .navlinks a { display: none; } }
+
+/* Hero */
+.hero { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 20px 48px; align-items: end; padding-block: 28px 30px; }
+.eyebrow { font: 600 12px var(--sans); letter-spacing: .18em; text-transform: uppercase; color: var(--brass); margin: 0 0 14px; }
+.hero h1 { font: 500 clamp(38px, 6.2vw, 74px)/1.0 var(--display); letter-spacing: -.02em; margin: 0; text-wrap: balance; }
+.hero h1 em { color: var(--brass-hi); font-weight: 400; }
+.hero .lede { color: var(--muted); font-size: 17px; max-width: 46ch; margin: 0; }
+.hero .scale { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+.scale span { font: 600 13px var(--mono); padding: 3px 10px; border-radius: 999px; border: 1px solid color-mix(in srgb, var(--c) 45%, transparent); color: var(--c); background: color-mix(in srgb, var(--c) 10%, transparent); }
+@media (max-width: 860px) { .hero { grid-template-columns: 1fr; align-items: start; } }
+
+/* Toolbar */
+.toolbar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; padding: 12px; background: var(--bg-2); border: 1px solid var(--line); border-radius: 14px; margin-bottom: 18px; }
+.toolbar .lbl { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: .1em; margin-right: 2px; }
+.group { display: flex; align-items: center; gap: 8px; }
+.seg { display: inline-flex; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 3px; gap: 2px; }
+.seg button { border: 0; background: transparent; color: var(--muted); font: 500 13.5px var(--sans); padding: 7px 12px; border-radius: 7px; cursor: pointer; transition: background .15s, color .15s; }
+.seg button:hover { color: var(--ink); }
+.seg button[aria-pressed="true"] { background: var(--surface-2); color: var(--brass-hi); box-shadow: inset 0 0 0 1px rgba(201,164,92,.35); }
+.spacer { flex: 1; }
+.btn { border: 1px solid var(--line); background: var(--surface); color: var(--ink); font: 500 13.5px var(--sans); padding: 9px 14px; border-radius: 10px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; transition: border-color .15s, background .15s, transform .1s; }
+.btn:hover:not(:disabled) { border-color: var(--brass); }
+.btn:active:not(:disabled) { transform: translateY(1px); }
+.btn.primary { background: linear-gradient(180deg, var(--brass-hi), var(--brass)); border-color: var(--brass); color: var(--brass-ink); font-weight: 600; }
+.btn:disabled { opacity: .4; cursor: not-allowed; }
+button:focus-visible, a:focus-visible { outline: 2px solid var(--brass-hi); outline-offset: 2px; }
+
+/* Main app */
+.app { display: grid; grid-template-columns: minmax(0, 1fr) minmax(310px, 410px); gap: 28px; align-items: start; }
+@media (max-width: 900px) { .app { grid-template-columns: 1fr; } }
+.board-zone { display: flex; gap: 12px; align-items: stretch; width: 100%; max-width: 660px; justify-self: center; }
+.evalbar { width: 12px; flex: none; border-radius: 999px; overflow: hidden; background: #0B0907; position: relative; box-shadow: inset 0 0 0 1px var(--line); }
+.evalbar .w { position: absolute; left: 0; right: 0; bottom: 0; background: linear-gradient(180deg, #FFF8EA, #E7DCC6); transition: height .6s cubic-bezier(.2,.8,.2,1); }
+.evalbar.flip .w { bottom: auto; top: 0; }
+.board-col { flex: 1; min-width: 0; display: grid; gap: 12px; }
+.player { display: flex; align-items: center; justify-content: space-between; gap: 10px; min-height: 28px; font-size: 14px; }
+.player .who { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.player .dot { width: 12px; height: 12px; border-radius: 50%; flex: none; box-shadow: 0 0 0 1px var(--line); }
+.player b { font-weight: 600; }
+.player .caps { font: 16px var(--glyph); color: var(--muted); letter-spacing: -2px; white-space: nowrap; overflow: hidden; }
+.player small { color: var(--muted); font: 500 12px var(--mono); }
+.status { font-size: 13px; color: var(--muted); display: inline-flex; align-items: center; gap: 7px; white-space: nowrap; }
+.status.on { color: var(--brass-hi); }
+.status i { width: 6px; height: 6px; border-radius: 50%; background: currentColor; animation: pulse 1s infinite ease-in-out; }
+.status i:nth-child(2) { animation-delay: .15s; } .status i:nth-child(3) { animation-delay: .3s; }
+@keyframes pulse { 50% { opacity: .2; transform: scale(.7); } }
+
+.frame {
+  --fp: 24px;
+  display: grid; grid-template-columns: var(--fp) minmax(0, 1fr) var(--fp); grid-template-rows: var(--fp) auto var(--fp);
+  border-radius: 14px; position: relative;
+  background:
+    repeating-linear-gradient(97deg, rgba(255,255,255,.018) 0 2px, transparent 2px 7px),
+    linear-gradient(160deg, #4A3526, #2C1F16 55%, #3A291D);
+  box-shadow: 0 1px 0 rgba(255,255,255,.06) inset, 0 30px 60px -20px rgba(0,0,0,.7), 0 10px 20px rgba(0,0,0,.35);
+}
+.frame::after { content: ""; position: absolute; inset: calc(var(--fp) - 5px); border: 1px solid rgba(201,164,92,.45); border-radius: 3px; pointer-events: none; }
+@media (max-width: 600px) { .frame { --fp: 16px; border-radius: 10px; } }
+.ranks { grid-column: 1; grid-row: 2; display: grid; grid-template-rows: repeat(8, 1fr); }
+.files { grid-column: 2; grid-row: 3; display: grid; grid-template-columns: repeat(8, 1fr); }
+.ranks span, .files span { display: grid; place-items: center; font: 600 clamp(8px, 1.4vw, 11px) var(--mono); color: rgba(232, 205, 143, .7); }
+.board { grid-column: 2; grid-row: 2; position: relative; width: 100%; aspect-ratio: 1; display: grid; grid-template-columns: repeat(8, 1fr); grid-template-rows: repeat(8, 1fr); overflow: hidden; border-radius: 2px; user-select: none; -webkit-user-select: none; touch-action: none; container-type: inline-size; }
+.sq { position: relative; display: grid; place-items: center; }
+.sq.l { background: var(--sq-light); }
+.sq.d { background: var(--sq-dark); background-image: linear-gradient(135deg, rgba(255,255,255,.05), rgba(0,0,0,.05)); }
+.sq.last::before, .sq.sel::before, .sq.chk::before { content: ""; position: absolute; inset: 0; }
+.sq.last::before { background: var(--sq-last); }
+.sq.sel::before { background: var(--sq-sel); }
+.sq.chk::before { background: radial-gradient(circle, rgba(242,88,79,.95) 0%, rgba(242,88,79,.45) 50%, transparent 72%); }
+.sq.tgt::after { content: ""; position: absolute; width: 28%; height: 28%; border-radius: 50%; background: var(--dot); }
+.sq.tgt.cap::after { width: 90%; height: 90%; background: transparent; border: 0.8cqw solid var(--dot); }
+.sq.mine { cursor: grab; }
+.sq.mine:hover .pc { transform: translateY(-3%) scale(1.04); }
+.pc { position: relative; z-index: 1; font: 10.6cqw/1 var(--glyph); pointer-events: none; transition: transform .12s ease; will-change: transform; }
+.pc.w { color: #FFFBF1; text-shadow: 0 0 1px #1a130c, 1px 0 0 #1a130c, -1px 0 0 #1a130c, 0 1px 0 #1a130c, 0 -1px 0 #1a130c, 0 .5cqw .8cqw rgba(0,0,0,.45); }
+.pc.b { color: #17110C; text-shadow: 0 0 1px rgba(255,248,230,.5), 0 .5cqw .8cqw rgba(0,0,0,.4); }
+.pc.ghosted { opacity: .22; }
+.pc.moving { z-index: 5; transition: transform .24s cubic-bezier(.2,.8,.2,1); }
+.ghost { position: fixed; z-index: 50; pointer-events: none; transform: translate(-50%, -58%) scale(1.1); line-height: 1; filter: drop-shadow(0 8px 10px rgba(0,0,0,.45)); }
+svg.arrows { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 6; }
+.promo { position: absolute; inset: 0; z-index: 10; display: grid; place-items: center; background: rgba(19,15,12,.55); backdrop-filter: blur(2px); }
+.promo div { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 10px; display: flex; gap: 6px; }
+.promo button { width: 11cqw; height: 11cqw; min-width: 44px; min-height: 44px; border: 1px solid var(--line); background: var(--surface-2); border-radius: 8px; cursor: pointer; font: 8cqw/1 var(--glyph); color: var(--ink); }
+.promo button:hover { border-color: var(--brass); }
+
+/* Coach */
+.side { display: grid; gap: 16px; min-width: 0; }
+.coach { position: relative; background: linear-gradient(180deg, var(--surface-2), var(--surface) 140px); border: 1px solid var(--line); border-radius: 16px; overflow: hidden; }
+.coach-head { display: flex; gap: 14px; align-items: center; padding: 16px 18px; }
+.avatar { position: relative; width: 52px; height: 52px; border-radius: 50%; flex: none; display: grid; place-items: center; background: radial-gradient(circle at 35% 30%, #3F3125, #1A140F); box-shadow: 0 0 0 1px var(--brass), 0 0 0 4px var(--surface-2), 0 0 0 5px rgba(201,164,92,.35); font: italic 500 22px var(--display); color: var(--brass-hi); }
+.avatar::after { content: ""; position: absolute; right: 0; bottom: 2px; width: 11px; height: 11px; border-radius: 50%; background: var(--c-best); box-shadow: 0 0 0 2px var(--surface-2); }
+.coach-head .nm { font: 500 23px/1.1 var(--display); }
+.coach-head .role { font-size: 11.5px; color: var(--muted); letter-spacing: .12em; text-transform: uppercase; margin-top: 3px; }
+.bubble { padding: 4px 18px 18px; display: grid; gap: 12px; min-height: 170px; align-content: start; }
+.bubble.enter > * { animation: rise .38s cubic-bezier(.2,.8,.2,1) both; }
+.bubble.enter > *:nth-child(2) { animation-delay: .05s; } .bubble.enter > *:nth-child(3) { animation-delay: .1s; } .bubble.enter > *:nth-child(4) { animation-delay: .15s; } .bubble.enter > *:nth-child(5) { animation-delay: .2s; }
+@keyframes rise { from { opacity: 0; transform: translateY(8px); } }
+.verdict { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.chip { display: inline-flex; align-items: center; gap: 7px; font: 600 12.5px var(--sans); padding: 4px 11px; border-radius: 999px; color: var(--c); background: color-mix(in srgb, var(--c) 14%, transparent); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--c) 45%, transparent); }
+.chip .sym { font: 700 13px var(--mono); }
+.verdict .mv { font: 600 15px var(--mono); }
+.verdict .ev { margin-left: auto; font: 500 12.5px var(--mono); color: var(--muted); }
+.say { font: 400 21px/1.4 var(--display); margin: 0; text-wrap: pretty; }
+.say em, .reply em, .better em { font: 600 .78em var(--mono); font-style: normal; color: var(--brass-hi); background: rgba(201,164,92,.1); padding: 1px 5px; border-radius: 5px; }
+.say strong { font-weight: 700; }
+.tip { font-size: 14px; color: var(--muted); margin: 0; padding-left: 12px; border-left: 2px solid var(--line); }
+.tip b { color: var(--ink); font-weight: 600; }
+.better { display: flex; align-items: center; gap: 8px; font-size: 14px; background: rgba(134,192,111,.08); box-shadow: inset 0 0 0 1px rgba(134,192,111,.25); border-radius: 10px; padding: 8px 8px 8px 12px; flex-wrap: wrap; }
+.better strong { font: 600 14.5px var(--mono); color: var(--c-best); }
+.better span { color: var(--muted); font: 12.5px var(--mono); }
+.better button { margin-left: auto; padding: 6px 10px; font-size: 12.5px; }
+.reply { font-size: 14px; color: var(--muted); margin: 0; padding-top: 10px; border-top: 1px dashed var(--line); }
+.reply.warn { color: var(--c-mist); border-top: 0; padding-top: 0; font-weight: 500; }
+.coach-actions { display: flex; gap: 8px; flex-wrap: wrap; padding: 0 18px 18px; }
+
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; overflow: hidden; }
+.panel-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; padding: 14px 18px 10px; }
+.panel-head h2 { margin: 0; font: italic 500 19px var(--display); }
+.acc { font: 600 13px var(--mono); color: var(--brass-hi); }
+.stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; padding: 0 18px 14px; }
+.stats div { background: var(--bg-2); border-radius: 10px; padding: 9px 11px; }
+.stats b { display: block; font: 600 22px/1.1 var(--mono); }
+.stats small { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; }
+.moves { max-height: 220px; overflow-y: auto; border-top: 1px solid var(--line); font: 13.5px var(--mono); }
+.moves table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+.moves td { padding: 5px 10px; }
+.moves td.n { width: 48px; color: var(--muted); text-align: right; }
+.moves tr:nth-child(odd) td { background: rgba(255,255,255,.018); }
+.moves .s { font-weight: 700; margin-left: 3px; }
+.moves .cur { color: var(--brass-hi); }
+.empty { padding: 14px 18px; color: var(--muted); font-size: 14px; }
+
+/* How it works */
+.how { padding-block: 80px 30px; display: grid; gap: 36px; }
+.how h2 { font: 500 clamp(30px, 4.2vw, 48px)/1.05 var(--display); margin: 0; letter-spacing: -.015em; max-width: 18ch; text-wrap: balance; }
+.how h2 em { color: var(--brass-hi); font-weight: 400; }
+.how-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); gap: 36px; align-items: start; }
+@media (max-width: 860px) { .how-grid { grid-template-columns: 1fr; } }
+.feats { display: grid; gap: 22px; }
+.feat h3 { margin: 0 0 4px; font: 600 16px var(--sans); }
+.feat p { margin: 0; color: var(--muted); max-width: 52ch; }
+.feat .k { font: 600 12px var(--mono); color: var(--brass); letter-spacing: .08em; }
+.scale-table { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; overflow-x: auto; }
+.scale-table table { width: 100%; border-collapse: collapse; font-size: 14px; }
+.scale-table th { text-align: left; font: 600 11.5px var(--sans); text-transform: uppercase; letter-spacing: .1em; color: var(--muted); padding: 14px 16px 10px; border-bottom: 1px solid var(--line); }
+.scale-table td { padding: 11px 16px; border-bottom: 1px solid var(--line); vertical-align: top; }
+.scale-table tr:last-child td { border-bottom: 0; }
+.scale-table .sy { font: 700 15px var(--mono); color: var(--c); width: 52px; }
+.scale-table .th { font: 13px var(--mono); color: var(--muted); white-space: nowrap; }
+footer { border-top: 1px solid var(--line); margin-top: 50px; padding-block: 24px 40px; color: var(--muted); font-size: 13px; display: flex; flex-wrap: wrap; justify-content: space-between; gap: 10px; }
+/* Coach speech bubble on the board */
+.bb {
+  position: absolute; z-index: 20; width: min(290px, calc(100% - 20px));
+  background: #FBF4E4; color: #1C150E; border-radius: 14px; padding: 11px 14px 12px;
+  box-shadow: 0 14px 34px rgba(0,0,0,.45), 0 0 0 1px rgba(201,164,92,.6);
+  font-size: 14px; line-height: 1.45; cursor: pointer;
+  animation: pop .32s cubic-bezier(.2,1.3,.4,1) both; transform-origin: var(--tx, 50%) 100%;
+}
+.bb.below { transform-origin: var(--tx, 50%) 0; }
+.bb::after { content: ""; position: absolute; left: var(--tx, 50%); width: 14px; height: 14px; background: #FBF4E4; transform: translateX(-50%) rotate(45deg); box-shadow: 1px 1px 0 rgba(201,164,92,.6); bottom: -7px; }
+.bb.below::after { bottom: auto; top: -7px; box-shadow: -1px -1px 0 rgba(201,164,92,.6); }
+.bb .bh { display: flex; align-items: center; gap: 8px; margin-bottom: 5px; }
+.bb .av { width: 22px; height: 22px; border-radius: 50%; background: #1A140F; color: var(--brass-hi); display: grid; place-items: center; font: italic 500 10px var(--display); flex: none; }
+.bb .lab { font: 600 10.5px var(--sans); letter-spacing: .1em; text-transform: uppercase; color: #8A6420; }
+.bb .x { margin-left: auto; color: #8B7B68; font-size: 15px; line-height: 1; }
+.bb .main { font: 500 17px/1.3 var(--display); margin: 0 0 3px; }
+.bb .main b { font: 700 .82em var(--mono); background: rgba(138,100,32,.14); padding: 1px 5px; border-radius: 5px; }
+.bb p { margin: 0; color: #3E3226; }
+.bb.ok .lab { color: #3F7A34; }
+@keyframes pop { from { opacity: 0; transform: scale(.85); } }
+@media (max-width: 600px) { .bb { font-size: 13px; padding: 9px 11px 10px; } .bb .main { font-size: 15.5px; } }
+
+/* Openings */
+.play-only[hidden], .study-only[hidden] { display: none !important; }
+.evalbar.off { visibility: hidden; }
+.sq.focus { box-shadow: inset 0 0 0 .7cqw rgba(242, 88, 79, .9); }
+.olist { display: grid; gap: 12px; padding: 0 18px 16px; }
+.olist .grp { display: grid; gap: 8px; }
+.olist .grp > span { font: 600 11px var(--sans); letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+.olist .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.ochip { border: 1px solid var(--line); background: var(--bg-2); color: var(--ink); font: 500 13px var(--sans); padding: 6px 11px; border-radius: 999px; cursor: pointer; transition: border-color .15s, color .15s; }
+.ochip:hover { border-color: var(--brass); }
+.ochip[aria-pressed="true"] { border-color: var(--brass); color: var(--brass-hi); background: rgba(201,164,92,.1); }
+.ocard { border-top: 1px solid var(--line); padding: 16px 18px 18px; display: grid; gap: 14px; }
+.ocard h3 { margin: 0; font: 500 28px/1.05 var(--display); }
+.ocard .style { font: 600 11.5px var(--sans); letter-spacing: .1em; text-transform: uppercase; color: var(--brass); margin-top: 4px; }
+.ocard .sum { margin: 0; color: var(--muted); font-size: 14.5px; }
+.step { background: var(--bg-2); border-radius: 12px; padding: 14px 16px; display: grid; gap: 8px; min-height: 128px; align-content: start; }
+.step .who { display: flex; align-items: center; gap: 10px; font-size: 12.5px; color: var(--muted); }
+.step .who b { font: 600 16px var(--mono); color: var(--ink); }
+.step .who .n { margin-left: auto; font: 12px var(--mono); }
+.step .say { font-size: 19px; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 12px; color: var(--muted); }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.legend i { width: 18px; height: 3px; border-radius: 2px; background: var(--c); display: inline-block; }
+.legend i.ring { width: 12px; height: 12px; background: transparent; box-shadow: inset 0 0 0 2px var(--c); border-radius: 2px; }
+.stepctl { display: flex; gap: 6px; align-items: center; }
+.stepctl .btn { padding: 8px 12px; min-width: 42px; justify-content: center; font-family: var(--mono); }
+.stepctl .grow { flex: 1; }
+.line { display: flex; flex-wrap: wrap; gap: 2px 4px; font: 13px var(--mono); }
+.line button { border: 0; background: transparent; color: var(--muted); font: inherit; padding: 2px 5px; border-radius: 5px; cursor: pointer; }
+.line button:hover { color: var(--ink); }
+.line button.on { background: rgba(201,164,92,.16); color: var(--brass-hi); }
+.line .no { color: var(--line); padding: 2px 0 2px 4px; }
+.plans { margin: 0; padding: 0; list-style: none; display: grid; gap: 6px; font-size: 14px; }
+.plans li { display: flex; gap: 8px; }
+.plans li::before { content: "\2192"; color: var(--brass); }
+.oname { font: 500 12.5px var(--sans); color: var(--brass-hi); padding: 0 18px 12px; margin-top: -4px; }
+.propose { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip.book { --c: var(--brass-hi); }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition: none !important; animation: none !important; } html { scroll-behavior: auto; } }
+</style>
+<!--BODY-->
+<div class="wrap">
+  <nav class="top">
+    <a class="logo" href="#jouer"><span class="mark">&#9822;</span><span class="word">Orlan</span></a>
+    <div class="navlinks">
+      <a href="#jouer">Jouer</a>
+      <a href="#methode">La méthode</a>
+      <button class="sound" id="sound" aria-pressed="true">Son activé</button>
+    </div>
+  </nav>
+
+  <header class="hero">
+    <div>
+      <p class="eyebrow">Ton coach d'échecs personnel</p>
+      <h1>Chaque coup, <em>jugé</em> par un grand maître.</h1>
+    </div>
+    <div>
+      <p class="lede">Apprends les grandes ouvertures coup par coup, avec leurs intentions dessinées sur l'échiquier. Puis joue contre l'ordinateur : Viktor Orlan juge chacun de tes coups et t'explique pourquoi.</p>
+      <div class="scale">
+        <span style="--c:var(--c-brill)">!! brillant</span>
+        <span style="--c:var(--c-best)">! excellent</span>
+        <span style="--c:var(--c-inacc)">?! imprécis</span>
+        <span style="--c:var(--c-mist)">? erreur</span>
+        <span style="--c:var(--c-blund)">?? gaffe</span>
+      </div>
+    </div>
+  </header>
+
+  <section id="jouer">
+    <div class="toolbar">
+      <div class="seg" role="group" aria-label="Mode">
+        <button id="mode-play" data-mode="play" aria-pressed="true">Jouer une partie</button>
+        <button id="mode-study" data-mode="study" aria-pressed="false">Apprendre les ouvertures</button>
+      </div>
+      <div class="group play-only"><span class="lbl">Couleur</span>
+        <div class="seg" role="group" aria-label="Ta couleur">
+          <button id="col-w" data-col="w" aria-pressed="true">Blancs</button>
+          <button id="col-b" data-col="b" aria-pressed="false">Noirs</button>
+        </div>
+      </div>
+      <div class="group play-only"><span class="lbl">Adversaire</span>
+        <div class="seg" role="group" aria-label="Niveau de l'adversaire">
+          <button id="lvl-deb" data-lvl="deb" aria-pressed="false">Débutant</button>
+          <button id="lvl-club" data-lvl="club" aria-pressed="true">Club</button>
+          <button id="lvl-exp" data-lvl="exp" aria-pressed="false">Expert</button>
+        </div>
+      </div>
+      <span class="spacer"></span>
+      <button class="btn primary play-only" id="new">Nouvelle partie</button>
+    </div>
+
+    <div class="app">
+      <div class="board-zone">
+        <div class="evalbar" id="evalbar" title="Évaluation de la position"><div class="w" id="evalw" style="height:50%"></div></div>
+        <div class="board-col">
+          <div class="player" id="p-top"></div>
+          <div class="frame">
+            <div class="ranks" id="ranks"></div>
+            <div class="board" id="board" aria-label="Échiquier"></div>
+            <div class="files" id="files"></div>
+            <div class="bb" id="bb" hidden role="status"></div>
+          </div>
+          <div class="player" id="p-bot"></div>
+        </div>
+      </div>
+
+      <aside class="side">
+        <section class="coach study-only" id="study-side" hidden>
+          <div class="coach-head">
+            <div class="avatar">VO</div>
+            <div>
+              <div class="nm">Les ouvertures</div>
+              <div class="role">Choisis-en une, je t'explique</div>
+            </div>
+          </div>
+          <div class="olist" id="olist"></div>
+          <div class="ocard" id="ocard"></div>
+        </section>
+        <div class="side play-only" id="play-side">
+        <section class="coach" aria-live="polite">
+          <div class="coach-head">
+            <div class="avatar">VO</div>
+            <div>
+              <div class="nm">Viktor Orlan</div>
+              <div class="role">Grand maître · coach fictif</div>
+            </div>
+            <span class="ev" id="evaltxt" style="margin-left:auto;font:600 14px var(--mono);color:var(--muted)">0.0</span>
+          </div>
+          <div class="bubble" id="bubble"></div>
+          <div class="coach-actions">
+            <button class="btn" id="hint">Indice</button>
+            <button class="btn" id="undo">Reprendre mon coup</button>
+            <button class="btn" id="flip" aria-label="Tourner l'échiquier">Tourner</button>
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-head"><h2>Ta partie</h2><span class="acc" id="acc"></span></div>
+          <div class="oname" id="oname" hidden></div>
+          <div class="stats" id="stats"></div>
+          <div class="moves" id="moves"></div>
+        </section>
+        </div>
+      </aside>
+    </div>
+  </section>
+
+  <section class="how" id="methode">
+    <h2>Comment Orlan <em>juge</em> tes coups</h2>
+    <div class="how-grid">
+      <div class="feats">
+        <div class="feat"><span class="k">01 · MESURER</span><h3>Il compare ton coup au meilleur</h3><p>Avant que tu joues, le moteur cherche le meilleur coup. Ensuite il mesure combien tes chances de gagner ont baissé avec le tien.</p></div>
+        <div class="feat"><span class="k">02 · EXPLIQUER</span><h3>Il te dit pourquoi</h3><p>Une pièce laissée sans défense, un mat raté, une dame sortie trop tôt : il nomme le problème et te montre la meilleure suite sur l'échiquier.</p></div>
+        <div class="feat"><span class="k">03 · PRÉVENIR</span><h3>Il repère les menaces</h3><p>Après chaque réponse de l'adversaire, il vérifie ce qui te menace et te prévient avant que tu joues.</p></div>
+        <div class="feat"><span class="k">04 · ENSEIGNER</span><h3>Il t'apprend les ouvertures</h3><p>Huit ouvertures expliquées coup par coup, flèches à l'appui. Tu peux ensuite les jouer contre l'ordinateur pendant qu'il te souffle la théorie.</p></div>
+      </div>
+      <div class="scale-table">
+        <table>
+          <thead><tr><th></th><th>Verdict</th><th>Chances de gain perdues</th></tr></thead>
+          <tbody>
+            <tr><td class="sy" style="--c:var(--c-brill)">!!</td><td>Brillant : le meilleur coup, et il change la partie</td><td class="th">0</td></tr>
+            <tr><td class="sy" style="--c:var(--c-best)">!</td><td>Meilleur coup ou excellent</td><td class="th">≤ 2 pts</td></tr>
+            <tr><td class="sy" style="--c:var(--c-good)">·</td><td>Bon coup</td><td class="th">≤ 6 pts</td></tr>
+            <tr><td class="sy" style="--c:var(--c-inacc)">?!</td><td>Imprécision</td><td class="th">≤ 12 pts</td></tr>
+            <tr><td class="sy" style="--c:var(--c-mist)">?</td><td>Erreur</td><td class="th">≤ 22 pts</td></tr>
+            <tr><td class="sy" style="--c:var(--c-blund)">??</td><td>Gaffe</td><td class="th">&gt; 22 pts</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <span>Viktor Orlan est un personnage inventé. Ses avis viennent d'un moteur d'analyse intégré (5 demi-coups de profondeur).</span>
+    <span>Orlan · coach d'échecs</span>
+  </footer>
+</div>
+
+<script>/*CHESSJS*/</script>
+<script>/*OPENINGS*/</script>
+<script id="engine-src">/*ENGINE*/</script>
+<script>/*APP*/</script>
