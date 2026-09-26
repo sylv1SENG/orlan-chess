@@ -181,6 +181,9 @@ function renderGames(msg) {
       <select id="g-months" aria-label="Période"><option value="1">1 mois</option><option value="3" selected>3 mois</option><option value="6">6 mois</option></select>
       <button class="btn primary" id="g-go" ${GM.running ? 'disabled' : ''}>Analyser</button></div></form>`;
   if (msg) h += `<div class="bmsg">${msg}</div>`;
+  if (S.gm.active || S.gm.status) h += `<div class="step"><div class="who"><b>${S.gm.title || 'Entraînement'}</b><span class="n">${S.gm.progress || ''}</span></div><p class="say">${S.gm.status || ''}</p>${S.gm.detail ? `<div class="bmsg">${S.gm.detail}</div>` : ''}
+    ${S.gm.kind === 'drill' && S.gm.cur ? (S.gm.active ? `<div class="stepctl"><button class="btn" id="g-hint">Indice</button><button class="btn grow" id="g-skip">Passer</button></div>` : `<div class="stepctl"><button class="btn primary grow" id="g-nextpos">Position suivante</button></div>`) : ''}
+    ${S.gm.kind === 'spar' ? `<div class="stepctl"><button class="btn grow" id="g-restart">Nouvelle ligne</button></div>` : ''}</div>`;
   if (r) {
     const pct = (w, n) => n ? Math.round(100 * w / n) + ' %' : '–';
     h += `<div class="stats g3">
@@ -194,9 +197,6 @@ function renderGames(msg) {
       <div class="stepctl"><button class="btn grow" id="g-spar-w">Rejouer mes ouvertures · Blancs</button><button class="btn grow" id="g-spar-b">· Noirs</button></div>
       ${r.flags.length ? `<div><div class="style" style="margin-bottom:8px">Tes ouvertures à corriger</div><ul class="plans">${r.flags.slice(0, 6).map(f => `<li>Après ${f.line} (vu ${f.count} fois) : tu joues ${fr(f.played)}, mieux vaut ${fr(f.best)}.</li>`).join('')}</ul></div>` : ''}`;
   }
-  if (S.gm.active || S.gm.status) h += `<div class="step"><div class="who"><b>${S.gm.title || 'Entraînement'}</b><span class="n">${S.gm.progress || ''}</span></div><p class="say">${S.gm.status || ''}</p>${S.gm.detail ? `<div class="bmsg">${S.gm.detail}</div>` : ''}
-    ${S.gm.kind === 'drill' && S.gm.cur ? (S.gm.active ? `<div class="stepctl"><button class="btn" id="g-hint">Indice</button><button class="btn grow" id="g-skip">Passer</button></div>` : `<div class="stepctl"><button class="btn primary grow" id="g-nextpos">Position suivante</button></div>`) : ''}
-    ${S.gm.kind === 'spar' ? `<div class="stepctl"><button class="btn grow" id="g-restart">Nouvelle ligne</button></div>` : ''}</div>`;
   $('games-card').innerHTML = h;
   $('g-form').onsubmit = ev => { ev.preventDefault(); analyseGames($('g-user').value.trim(), +$('g-months').value); };
   if (r) { $('g-drill').onclick = () => startDrill(); $('g-spar-w').onclick = () => startSpar('w'); $('g-spar-b').onclick = () => startSpar('b'); }
