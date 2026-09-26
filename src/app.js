@@ -230,6 +230,7 @@ function placeBubble() {
     el.dataset.key = S.bb.key;
     el.hidden = false;
   }
+  if (window.matchMedia('(max-width: 600px)').matches) { el.style.left = el.style.top = ''; el.classList.remove('below'); return; }
   const size = boardEl.clientWidth / 8;
   const [x, y] = xy(S.bb.sq);
   const cx = boardEl.offsetLeft + (x + .5) * size, cy = boardEl.offsetTop + (y + .5) * size;
@@ -738,15 +739,9 @@ function renderOCard() {
   const side = o.side === 'w' ? 'Blancs' : 'Noirs';
   $('ocard').innerHTML = `
     <div><h3>${o.name}</h3><div class="style">Pour les ${side} · ${o.style}</div></div>
-    <p class="sum">${o.summary}</p>
     <div class="step" aria-live="polite">
       ${cur ? `<div class="who"><b>${num} ${fr(sans[n - 1])}</b>${who}<span class="n">${n} / ${o.moves.length}</span></div><p class="say">${cur.t}</p>`
-        : `<div class="who"><b>Position de départ</b><span class="n">0 / ${o.moves.length}</span></div><p class="say">Appuie sur <em>Lecture</em> ou sur la flèche pour voir le premier coup.</p>`}
-    </div>
-    <div class="legend">
-      <span style="--c:${ARROW.plan}"><i></i>idée, plan</span>
-      <span style="--c:${ARROW.threat}"><i></i>menace, attaque</span>
-      <span style="--c:${ARROW.threat}"><i class="ring"></i>case-clé</span>
+        : `<div class="who"><b>Position de départ</b><span class="n">0 / ${o.moves.length}</span></div><p class="say">${o.summary}</p>`}
     </div>
     <div class="stepctl">
       <button class="btn" id="s-first" aria-label="Début">«</button>
@@ -755,7 +750,13 @@ function renderOCard() {
       <button class="btn" id="s-next" aria-label="Coup suivant">›</button>
       <button class="btn" id="s-last" aria-label="Fin">»</button>
     </div>
+    <div class="legend">
+      <span style="--c:${ARROW.plan}"><i></i>idée, plan</span>
+      <span style="--c:${ARROW.threat}"><i></i>menace, attaque</span>
+      <span style="--c:${ARROW.threat}"><i class="ring"></i>case-clé</span>
+    </div>
     <div class="line">${line}</div>
+    ${n ? `<p class="sum">${o.summary}</p>` : ''}
     <div><div class="style" style="margin-bottom:8px">Le plan</div><ul class="plans">${o.plans.map(p => `<li>${p}</li>`).join('')}</ul></div>
     <button class="btn primary" id="s-guide">Jouer cette ouverture contre l'ordinateur</button>`;
   $('s-first').onclick = () => { stopAuto(); gotoStep(0); };

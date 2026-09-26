@@ -138,7 +138,7 @@ button:focus-visible, a:focus-visible { outline: 2px solid var(--brass-hi); outl
 .sq.tgt::after { content: ""; position: absolute; width: 28%; height: 28%; border-radius: 50%; background: var(--dot); }
 .sq.tgt.cap::after { width: 90%; height: 90%; background: transparent; border: 0.8cqw solid var(--dot); }
 .sq.mine { cursor: grab; }
-.sq.mine:hover .pc { transform: translateY(-3%) scale(1.04); }
+@media (hover: hover) { .sq.mine:hover .pc { transform: translateY(-3%) scale(1.04); } }
 .pc { position: relative; z-index: 1; font: 10.6cqw/1 var(--glyph); pointer-events: none; transition: transform .12s ease; will-change: transform; }
 .pc.w { color: #FFFBF1; text-shadow: 0 0 1px #1a130c, 1px 0 0 #1a130c, -1px 0 0 #1a130c, 0 1px 0 #1a130c, 0 -1px 0 #1a130c, 0 .5cqw .8cqw rgba(0,0,0,.45); }
 .pc.b { color: #17110C; text-shadow: 0 0 1px rgba(255,248,230,.5), 0 .5cqw .8cqw rgba(0,0,0,.4); }
@@ -276,6 +276,57 @@ footer { border-top: 1px solid var(--line); margin-top: 50px; padding-block: 24p
 .oname { font: 500 12.5px var(--sans); color: var(--brass-hi); padding: 0 18px 12px; margin-top: -4px; }
 .propose { display: flex; flex-wrap: wrap; gap: 6px; }
 .chip.book { --c: var(--brass-hi); }
+/* Phones */
+.sm { display: none; }
+button, .sq { touch-action: manipulation; }
+@media (max-width: 600px) {
+  body { font-size: 14.5px; }
+  nav.top { padding-block: 12px; }
+  .hero { padding-block: 6px 16px; gap: 8px; }
+  .hero h1 { font-size: 32px; }
+  .hero .lede, .hero .scale { display: none; }
+  .eyebrow { margin-bottom: 8px; font-size: 11px; }
+  .lg { display: none; } .sm { display: inline; }
+  .toolbar { padding: 8px; gap: 8px; margin-bottom: 12px; border-radius: 12px; }
+  .toolbar > .seg:first-child { flex: 1 1 200px; order: 0; }
+  .toolbar > .seg:first-child button { flex: 1; }
+  .toolbar .lbl, .toolbar .spacer { display: none; }
+  .toolbar .group { flex: 1 1 auto; }
+  .toolbar .group .seg { width: 100%; }
+  .toolbar .group .seg button { flex: 1; padding: 7px 6px; }
+  #new { flex: none; order: 1; width: 44px; align-self: stretch; padding: 0; justify-content: center; font-size: 20px; }
+  .toolbar .group { order: 2; flex: 1 1 auto; min-width: 0; }
+  .eyebrow { display: none; }
+  .app { display: flex; flex-direction: column; gap: 14px; }
+  .app > .side, #study-side { display: contents; }
+  .board-zone { order: 0; gap: 8px; }
+  #play-side { order: 1; }
+  #ocard { order: 1; }
+  #olist { order: 2; }
+  #study-side > .coach-head { display: none; }
+  #ocard, #olist { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 14px; }
+  .olist .chips { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; margin-inline: -14px; padding-inline: 14px; }
+  .olist .chips::-webkit-scrollbar { display: none; }
+  .ochip { flex: none; }
+  .evalbar { width: 8px; }
+  .player { font-size: 13px; min-height: 22px; }
+  .player .caps { font-size: 14px; }
+  .coach-head { padding: 12px 14px; }
+  .avatar { width: 42px; height: 42px; font-size: 18px; }
+  .coach-head .nm { font-size: 20px; }
+  .bubble { padding: 2px 14px 14px; min-height: 0; }
+  .say { font-size: 18px; }
+  .step .say { font-size: 17px; }
+  .coach-actions { padding: 0 14px 14px; }
+  .coach-actions .btn { flex: 1; justify-content: center; }
+  .stepctl .btn { min-width: 44px; min-height: 44px; }
+  .ocard h3 { font-size: 24px; }
+  .how { padding-block: 48px 20px; gap: 24px; }
+  /* Coach bubble docked under the board instead of covering it */
+  .frame .bb { position: static; grid-column: 1 / -1; grid-row: 4; width: auto; margin: 2px 10px 12px; animation-name: rise; }
+  .frame .bb::after { display: none; }
+}
+
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition: none !important; animation: none !important; } html { scroll-behavior: auto; } }
 </style>
 </head>
@@ -310,8 +361,8 @@ footer { border-top: 1px solid var(--line); margin-top: 50px; padding-block: 24p
   <section id="jouer">
     <div class="toolbar">
       <div class="seg" role="group" aria-label="Mode">
-        <button id="mode-play" data-mode="play" aria-pressed="true">Jouer une partie</button>
-        <button id="mode-study" data-mode="study" aria-pressed="false">Apprendre les ouvertures</button>
+        <button id="mode-play" data-mode="play" aria-pressed="true"><span class="lg">Jouer une partie</span><span class="sm">Jouer</span></button>
+        <button id="mode-study" data-mode="study" aria-pressed="false"><span class="lg">Apprendre les ouvertures</span><span class="sm">Ouvertures</span></button>
       </div>
       <div class="group play-only"><span class="lbl">Couleur</span>
         <div class="seg" role="group" aria-label="Ta couleur">
@@ -327,7 +378,7 @@ footer { border-top: 1px solid var(--line); margin-top: 50px; padding-block: 24p
         </div>
       </div>
       <span class="spacer"></span>
-      <button class="btn primary play-only" id="new">Nouvelle partie</button>
+      <button class="btn primary play-only" id="new" aria-label="Nouvelle partie" title="Nouvelle partie"><span class="lg">Nouvelle partie</span><span class="sm" aria-hidden="true">&#8635;</span></button>
     </div>
 
     <div class="app">
@@ -2821,6 +2872,7 @@ function placeBubble() {
     el.dataset.key = S.bb.key;
     el.hidden = false;
   }
+  if (window.matchMedia('(max-width: 600px)').matches) { el.style.left = el.style.top = ''; el.classList.remove('below'); return; }
   const size = boardEl.clientWidth / 8;
   const [x, y] = xy(S.bb.sq);
   const cx = boardEl.offsetLeft + (x + .5) * size, cy = boardEl.offsetTop + (y + .5) * size;
@@ -3329,15 +3381,9 @@ function renderOCard() {
   const side = o.side === 'w' ? 'Blancs' : 'Noirs';
   $('ocard').innerHTML = `
     <div><h3>${o.name}</h3><div class="style">Pour les ${side} · ${o.style}</div></div>
-    <p class="sum">${o.summary}</p>
     <div class="step" aria-live="polite">
       ${cur ? `<div class="who"><b>${num} ${fr(sans[n - 1])}</b>${who}<span class="n">${n} / ${o.moves.length}</span></div><p class="say">${cur.t}</p>`
-        : `<div class="who"><b>Position de départ</b><span class="n">0 / ${o.moves.length}</span></div><p class="say">Appuie sur <em>Lecture</em> ou sur la flèche pour voir le premier coup.</p>`}
-    </div>
-    <div class="legend">
-      <span style="--c:${ARROW.plan}"><i></i>idée, plan</span>
-      <span style="--c:${ARROW.threat}"><i></i>menace, attaque</span>
-      <span style="--c:${ARROW.threat}"><i class="ring"></i>case-clé</span>
+        : `<div class="who"><b>Position de départ</b><span class="n">0 / ${o.moves.length}</span></div><p class="say">${o.summary}</p>`}
     </div>
     <div class="stepctl">
       <button class="btn" id="s-first" aria-label="Début">«</button>
@@ -3346,7 +3392,13 @@ function renderOCard() {
       <button class="btn" id="s-next" aria-label="Coup suivant">›</button>
       <button class="btn" id="s-last" aria-label="Fin">»</button>
     </div>
+    <div class="legend">
+      <span style="--c:${ARROW.plan}"><i></i>idée, plan</span>
+      <span style="--c:${ARROW.threat}"><i></i>menace, attaque</span>
+      <span style="--c:${ARROW.threat}"><i class="ring"></i>case-clé</span>
+    </div>
     <div class="line">${line}</div>
+    ${n ? `<p class="sum">${o.summary}</p>` : ''}
     <div><div class="style" style="margin-bottom:8px">Le plan</div><ul class="plans">${o.plans.map(p => `<li>${p}</li>`).join('')}</ul></div>
     <button class="btn primary" id="s-guide">Jouer cette ouverture contre l'ordinateur</button>`;
   $('s-first').onclick = () => { stopAuto(); gotoStep(0); };
