@@ -367,13 +367,12 @@ function confetti(host) {
 function hidePop() { const el = document.getElementById('pop'); if (el) el.remove(); }
 function popup(o) {
   hidePop();
-  const host = popHost(); if (!host) return;
+  const host = document.body;
   const el = document.createElement('div'); el.id = 'pop'; el.className = 'pop';
   const stars = o.stars != null ? `<div class="pop-stars" aria-label="${o.stars} étoile${o.stars > 1 ? 's' : ''} sur 3">${[1, 2, 3].map(i => `<span class="${i <= o.stars ? 'on' : ''}" style="animation-delay:${.15 + i * .12}s">★</span>`).join('')}</div>` : '';
   el.innerHTML = `<div class="pop-card tone-${o.tone}" role="dialog" aria-modal="true" aria-labelledby="pop-t">
-      <div class="pop-badge">${ICONS[o.tone] || ICONS.info}</div>
-      ${o.kicker ? `<div class="pop-kicker">${o.kicker}</div>` : ''}
-      <h4 id="pop-t">${o.title}</h4>
+      <div class="pop-head"><div class="pop-badge">${ICONS[o.tone] || ICONS.info}</div>
+        <div>${o.kicker ? `<div class="pop-kicker">${o.kicker}</div>` : ''}<h4 id="pop-t">${o.title}</h4></div></div>
       ${stars}
       ${o.body ? `<p class="pop-body">${o.body}</p>` : ''}
       ${o.moves ? `<div class="pop-moves">${o.moves.map(m => `<div class="pm ${m.kind}"><span>${m.label}</span><b>${fr(m.san)}</b></div>`).join('')}</div>` : ''}
@@ -387,7 +386,7 @@ function popup(o) {
   if (o.tone === 'win' || o.tone === 'end') confetti(el);
   chime(o.tone);
   const prim = el.querySelector('.pbtn.primary') || el.querySelector('.pbtn'); if (prim) setTimeout(() => prim.focus({ preventScroll: true }), 50);
-  if (window.matchMedia('(max-width: 600px)').matches) { const r = host.getBoundingClientRect(); if (r.top < 0 || r.top > innerHeight * .4) window.scrollTo({ top: scrollY + r.top - 8, behavior: 'smooth' }); }
+
 }
 let toastTimer = null;
 function toast(html, tone, ms) {
