@@ -1,0 +1,4 @@
+# Masque le fichier technique laissé par le déploiement automatique
+<Files ".ftp-deploy-sync-state.json">
+  Require all denied
+</Files>

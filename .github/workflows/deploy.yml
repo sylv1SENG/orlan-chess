@@ -22,7 +22,7 @@ jobs:
       - name: Construire index.html
         run: |
           python3 build.py
-          mkdir -p dist && cp index.html dist/
+          mkdir -p dist && cp index.html dist/ && cp deploy/.htaccess dist/
 
       - name: Envoyer par FTP
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
