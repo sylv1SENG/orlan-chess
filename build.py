@@ -4,7 +4,7 @@ src=open(d+'src/page.html').read()
 eng=open(d+'src/engine.js').read(); eng=eng[eng.index('/* ENGINE-START */'):eng.index('/* ENGINE-END */')]
 op=open(d+'src/openings.js').read().replace("if (typeof module !== 'undefined') module.exports = OPENINGS;","")
 chess=open(d+'vendor/chess.js').read()
-app=open(d+'src/app.js').read()
+app=open(d+'src/app.js').read().replace('/*MODULES*/', open(d+'src/modules.js').read())
 src=src.replace('/*CHESSJS*/',chess).replace('/*OPENINGS*/',op).replace('/*ENGINE*/',eng).replace('/*APP*/',app)
 head,body=src.split('<!--BODY-->')
 fav="data:image/svg+xml,"+"%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='30' fill='%23130F0C' stroke='%23C9A45C' stroke-width='3'/%3E%3Ctext x='32' y='45' font-size='36' text-anchor='middle' fill='%23E8CD8F'%3E%E2%99%9E%3C/text%3E%3C/svg%3E"

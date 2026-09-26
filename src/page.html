@@ -265,6 +265,24 @@ footer { border-top: 1px solid var(--line); margin-top: 50px; padding-block: 24p
 .oname { font: 500 12.5px var(--sans); color: var(--brass-hi); padding: 0 18px 12px; margin-top: -4px; }
 .propose { display: flex; flex-wrap: wrap; gap: 6px; }
 .chip.book { --c: var(--brass-hi); }
+/* Bases & chess.com modules */
+.bases-only[hidden], .games-only[hidden] { display: none !important; }
+#bases-list { padding-top: 16px; }
+#bases-card, #games-card { border-top: 0; }
+#bases-side #bases-card { border-top: 1px solid var(--line); }
+.bmsg { font-size: 14px; color: var(--ink); display: grid; gap: 6px; }
+.bmsg .tip { margin: 0; }
+.gform { display: grid; gap: 6px; }
+.gform label { font: 600 11.5px var(--sans); letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+.grow-row { display: flex; flex-wrap: wrap; gap: 6px; }
+#games-card, #bases-card { min-width: 0; }
+#games-card .style { overflow-wrap: anywhere; }
+.gform input, .gform select { min-width: 0; background: var(--bg-2); color: var(--ink); border: 1px solid var(--line); border-radius: 10px; padding: 9px 11px; font: 500 14.5px var(--sans); }
+.gform input { flex: 1 1 160px; }
+.gform input:focus-visible, .gform select:focus-visible { outline: 2px solid var(--brass-hi); outline-offset: 1px; }
+.stats.g3 { padding: 0; }
+.toolbar > .seg:first-child button { white-space: nowrap; }
+
 /* Phones */
 .sm { display: none; }
 button, .sq { touch-action: manipulation; }
@@ -278,7 +296,7 @@ button, .sq { touch-action: manipulation; }
   .lg { display: none; } .sm { display: inline; }
   .toolbar { padding: 8px; gap: 8px; margin-bottom: 12px; border-radius: 12px; }
   .toolbar > .seg:first-child { flex: 1 1 200px; order: 0; }
-  .toolbar > .seg:first-child button { flex: 1; }
+  .toolbar > .seg:first-child button { flex: 1; padding: 7px 3px; font-size: 12.5px; }
   .toolbar .lbl, .toolbar .spacer { display: none; }
   .toolbar .group { flex: 1 1 auto; }
   .toolbar .group .seg { width: 100%; }
@@ -290,7 +308,10 @@ button, .sq { touch-action: manipulation; }
   .app > .side, #study-side { display: contents; }
   .board-zone { order: 0; gap: 8px; }
   #play-side { order: 1; }
-  #ocard { order: 1; }
+  #ocard, #bases-side, #games-side { order: 1; }
+  #bases-side { display: flex; flex-direction: column; }
+  #bases-card { order: -1; }
+  #bases-side #bases-card { border-top: 0; border-bottom: 1px solid var(--line); }
   #olist { order: 2; }
   #study-side > .coach-head { display: none; }
   #ocard, #olist { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 14px; }
@@ -349,8 +370,10 @@ button, .sq { touch-action: manipulation; }
   <section id="jouer">
     <div class="toolbar">
       <div class="seg" role="group" aria-label="Mode">
-        <button id="mode-play" data-mode="play" aria-pressed="true"><span class="lg">Jouer une partie</span><span class="sm">Jouer</span></button>
-        <button id="mode-study" data-mode="study" aria-pressed="false"><span class="lg">Apprendre les ouvertures</span><span class="sm">Ouvertures</span></button>
+        <button id="mode-play" data-mode="play" aria-pressed="true"><span class="lg">Jouer</span><span class="sm">Jouer</span></button>
+        <button id="mode-study" data-mode="study" aria-pressed="false"><span class="lg">Ouvertures</span><span class="sm">Ouvertures</span></button>
+        <button id="mode-bases" data-mode="bases" aria-pressed="false"><span class="lg">Les bases</span><span class="sm">Bases</span></button>
+        <button id="mode-games" data-mode="games" aria-pressed="false"><span class="lg">Mes parties chess.com</span><span class="sm">Mes parties</span></button>
       </div>
       <div class="group play-only"><span class="lbl">Couleur</span>
         <div class="seg" role="group" aria-label="Ta couleur">
@@ -395,6 +418,13 @@ button, .sq { touch-action: manipulation; }
           </div>
           <div class="olist" id="olist"></div>
           <div class="ocard" id="ocard"></div>
+        </section>
+        <section class="coach bases-only" id="bases-side" hidden>
+          <div class="olist" id="bases-list"></div>
+          <div class="ocard" id="bases-card"></div>
+        </section>
+        <section class="coach games-only" id="games-side" hidden>
+          <div class="ocard" id="games-card"></div>
         </section>
         <div class="side play-only" id="play-side">
         <section class="coach" aria-live="polite">

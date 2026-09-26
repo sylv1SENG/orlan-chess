@@ -121,9 +121,27 @@ const S = {
   notes: {}, entries: [], analysis: null, pending: null,
   busy: false, thinking: '', sel: null, targets: [], hint: 0, arrows: [], focus: [], over: false,
   anim: null, token: 0, guide: null, bb: null, threatSq: null,
-  study: { o: OPENINGS[0], step: 0, game: new Chess(), timer: null }
+  study: { o: OPENINGS[0], step: 0, game: new Chess(), timer: null },
+  bases: { item: null, game: new Chess(), color: 'w', active: false, busy: false, moves: 0, done: false },
+  gm: { game: new Chess(), color: 'w', active: false, busy: false }
 };
-const G = () => S.mode === 'study' ? S.study.game : S.game;
+const G = () => S.mode === 'study' ? S.study.game : S.mode === 'bases' ? S.bases.game : S.mode === 'games' ? S.gm.game : S.game;
+// Which colour the person moves, and whether they may move now, in the current mode
+const userColor = () => S.mode === 'bases' ? S.bases.color : S.mode === 'games' ? S.gm.color : S.user;
+function inputAllowed() {
+  const g = G();
+  if (S.mode === 'play') return g.turn() === S.user && !S.busy && !S.over;
+  if (S.mode === 'bases') return S.bases.active && !S.bases.busy && g.turn() === S.bases.color;
+  if (S.mode === 'games') return S.gm.active && !S.gm.busy && g.turn() === S.gm.color;
+  return false;
+}
+function userMove(from, to, promotion, dragged) {
+  if (S.mode === 'play') return tryMove(from, to, promotion, dragged);
+  const p = G().get(from);
+  if (!promotion && p && p.type === 'p' && (to[1] === '8' || to[1] === '1')) { askPromotion(from, to); return; }
+  if (S.mode === 'bases') return basesMove(from, to, promotion, dragged);
+  if (S.mode === 'games') return gamesMove(from, to, promotion, dragged);
+}
 
 /* ---------- Board ---------- */
 const boardEl = $('board');
@@ -134,7 +152,7 @@ arrowSvg.setAttribute('class', 'arrows'); arrowSvg.setAttribute('viewBox', '0 0 
 boardEl.appendChild(arrowSvg);
 
 function bottomColor() {
-  const base = S.mode === 'study' ? S.study.o.side : S.user;
+  const base = S.mode === 'study' ? S.study.o.side : userColor();
   return S.flipped ? (base === 'w' ? 'b' : 'w') : base;
 }
 function sqAt(i) {
@@ -153,7 +171,7 @@ function render() {
   const hist = g.history({ verbose: true });
   const last = hist[hist.length - 1];
   const checkSq = g.in_check() ? findKing(g, g.turn()) : null;
-  const myTurn = !study && g.turn() === S.user && !S.busy && !S.over;
+  const myTurn = inputAllowed(), uc = userColor();
   for (let i = 0; i < 64; i++) {
     const sq = sqAt(i), el = squares[i];
     const r = Math.floor(i / 8), c = i % 8;
@@ -165,7 +183,7 @@ function render() {
     if (checkSq === sq) cls += ' chk';
     if (S.focus.includes(sq)) cls += ' focus';
     if (!study && S.targets.includes(sq)) cls += ' tgt' + (p ? ' cap' : '');
-    if (myTurn && p && p.color === S.user) cls += ' mine';
+    if (myTurn && p && p.color === uc) cls += ' mine';
     el.className = cls;
     el.innerHTML = p ? `<span class="pc ${p.color}${drag && drag.moved && drag.from === sq ? ' ghosted' : ''}">${GLYPH[p.type]}</span>` : '';
   }
@@ -176,8 +194,8 @@ function render() {
   drawArrows();
   placeBubble();
   renderPlayers();
-  $('evalbar').classList.toggle('off', study);
-  if (study) return;
+  $('evalbar').classList.toggle('off', S.mode !== 'play');
+  if (S.mode !== 'play') return;
   renderMoves();
   renderStats();
   $('undo').disabled = S.busy || !S.entries.length;
@@ -205,7 +223,7 @@ function findKing(g, color) {
 }
 function drawArrows() {
   let h = '';
-  const list = S.bb && S.bb.arrow && S.mode === 'play' ? S.arrows.concat([S.bb.arrow]) : S.arrows;
+  const list = S.bb && S.bb.arrow && S.mode !== 'study' ? S.arrows.concat([S.bb.arrow]) : S.arrows;
   for (const a of list) {
     if (!a || a.from === a.to) continue;
     const [x1, y1] = xy(a.from), [x2, y2] = xy(a.to);
@@ -222,7 +240,7 @@ function drawArrows() {
 /* ---------- Speech bubble on the board ---------- */
 function placeBubble() {
   const el = $('bb');
-  if (!S.bb || S.mode !== 'play') { el.hidden = true; el.dataset.key = ''; return; }
+  if (!S.bb || S.mode === 'study') { el.hidden = true; el.dataset.key = ''; return; }
   if (el.dataset.key !== S.bb.key) {
     el.innerHTML = `<div class="bh"><span class="av">VO</span><span class="lab">${S.bb.label}</span><span class="x" aria-hidden="true">×</span></div>
       <p class="main">${S.bb.main}</p>${S.bb.why ? `<p>${S.bb.why}</p>` : ''}`;
@@ -295,14 +313,17 @@ function renderPlayers() {
   const line = c => {
     const capd = c === 'w' ? cw : cb, adv = c === 'w' ? diff : -diff;
     const name = study ? (c === 'w' ? 'Blancs' : 'Noirs') + (c === S.study.o.side ? ' · ton camp' : '')
+      : S.mode === 'bases' ? (c === S.bases.color ? 'Toi' : 'Défense de l’ordinateur')
+      : S.mode === 'games' ? (c === S.gm.color ? 'Toi' : (S.gm.oppLabel || 'Tes adversaires'))
       : c === S.user ? 'Toi' : `Ordinateur · ${LEVELS[S.level].label}`;
     let st = '';
-    if (!study && !S.over && g.turn() === c) {
+    if (S.mode === 'play' && !S.over && g.turn() === c) {
       if (c !== S.user && S.busy) st = '<span class="status on"><i></i><i></i><i></i> réfléchit</span>';
       else if (c === S.user && S.thinking) st = `<span class="status on"><i></i><i></i><i></i> ${S.thinking}</span>`;
       else if (c === S.user) st = '<span class="status">À toi de jouer</span>';
     }
-    return `<span class="who"><span class="dot" style="background:${c === 'w' ? '#FFFBF1' : '#17110C'}"></span><b>${name}</b><span class="caps">${capd.s}</span>${adv > 0 ? `<small>+${adv}</small>` : ''}</span>${st}`;
+    const showCaps = S.mode === 'play' || S.mode === 'games';
+    return `<span class="who"><span class="dot" style="background:${c === 'w' ? '#FFFBF1' : '#17110C'}"></span><b>${name}</b>${showCaps ? `<span class="caps">${capd.s}</span>${adv > 0 ? `<small>+${adv}</small>` : ''}` : ''}</span>${st}`;
   };
   $('p-top').innerHTML = line(top);
   $('p-bot').innerHTML = line(bottom);
@@ -659,21 +680,21 @@ function askPromotion(from, to) {
   ov.addEventListener('click', ev => {
     const b = ev.target.closest('button');
     ov.remove();
-    if (b) tryMove(from, to, b.dataset.t); else { S.sel = null; S.targets = []; render(); }
+    if (b) userMove(from, to, b.dataset.t); else { S.sel = null; S.targets = []; render(); }
   });
   boardEl.appendChild(ov);
 }
 
 /* ---------- Input: click + drag ---------- */
-function select(sq) { S.sel = sq; S.targets = S.game.moves({ square: sq, verbose: true }).map(m => m.to); }
+function select(sq) { S.sel = sq; S.targets = G().moves({ square: sq, verbose: true }).map(m => m.to); }
 boardEl.addEventListener('pointerdown', ev => {
   if (S.mode === 'study') return;
   const el = ev.target.closest('.sq'); if (!el) return;
   const sq = el.dataset.sq;
-  if (S.busy || S.over || S.game.turn() !== S.user) return;
-  if (S.sel && S.targets.includes(sq)) { tryMove(S.sel, sq); return; }
-  const p = S.game.get(sq);
-  if (p && p.color === S.user) {
+  if (!inputAllowed()) return;
+  if (S.sel && S.targets.includes(sq)) { userMove(S.sel, sq); return; }
+  const p = G().get(sq);
+  if (p && p.color === userColor()) {
     const wasSel = S.sel === sq;
     select(sq);
     const g = document.createElement('div');
@@ -697,7 +718,7 @@ boardEl.addEventListener('pointerup', ev => {
   if (d.moved) {
     const t = document.elementFromPoint(ev.clientX, ev.clientY);
     const sqEl = t && t.closest && t.closest('.sq');
-    if (sqEl && S.targets.includes(sqEl.dataset.sq)) { tryMove(d.from, sqEl.dataset.sq, null, true); return; }
+    if (sqEl && S.targets.includes(sqEl.dataset.sq)) { userMove(d.from, sqEl.dataset.sq, null, true); return; }
     if (!(sqEl && sqEl.dataset.sq === d.from)) { S.sel = null; S.targets = []; }
   } else if (d.wasSel) { S.sel = null; S.targets = []; }
   render();
@@ -783,8 +804,12 @@ function setMode(m) {
   document.querySelectorAll('[data-mode]').forEach(x => x.setAttribute('aria-pressed', x.dataset.mode === m));
   document.querySelectorAll('.play-only').forEach(x => x.hidden = m !== 'play');
   document.querySelectorAll('.study-only').forEach(x => x.hidden = m !== 'study');
-  S.flipped = false;
+  document.querySelectorAll('.bases-only').forEach(x => x.hidden = m !== 'bases');
+  document.querySelectorAll('.games-only').forEach(x => x.hidden = m !== 'games');
+  S.flipped = false; S.bb = null; S.sel = null; S.targets = [];
   if (m === 'study') { renderOList(); gotoStep(S.study.step); }
+  else if (m === 'bases') { stopAuto(); S.arrows = []; S.focus = []; renderBases(); render(); }
+  else if (m === 'games') { stopAuto(); S.arrows = []; S.focus = []; renderGames(); render(); }
   else {
     stopAuto();
     S.arrows = []; S.focus = [];
@@ -853,6 +878,8 @@ document.querySelectorAll('[data-lvl]').forEach(b => b.onclick = () => {
   if (!S.game.history().length) welcome();
   render();
 });
+
+/*MODULES*/
 
 function newGame(keepGuide) {
   S.token++;
